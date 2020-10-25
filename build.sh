@@ -26,8 +26,8 @@ OUTFLD="$arch.static"
 # get depot_tools
 if [ ! -d "depot_tools" ]; then
    git clone $source
-#else
-#   git pull 
+else
+   git pull 
 fi
 
 # keep the Arch Linux pkgbuild logic
@@ -52,6 +52,8 @@ function msg {
 function msg2 {
   echo -e "\e[32m$1\e[0m"
 }
+
+
 
 ## prepare step
 
@@ -104,10 +106,12 @@ prepare
 
 ## end prepare
 
-## build setp
-fakeroot -- bash
-msg "build"
+
 cd $srcdir
+## build step
+msg "build"
+fakeroot -- bash <<- EOF
+
 build() { 
 
   export PATH=`pwd`/depot_tools:"$PATH"
@@ -120,13 +124,14 @@ build() {
 }
 
 build
-exit
 
+EOF
 ## end build
 
+
 ## check step
-fakeroot -- bash
 msg "check"
+fakeroot -- bash <<- EOF
 
 check() {
   
@@ -140,16 +145,17 @@ check() {
 
 check
 
-exit
+EOF
 ## end check
 
-## package step
 
+## package step
 msg "package"
-prepare() {
+fakeroot -- bash  <<- EOF
+
+package_me() {
 
   # keep only the statically linked monolith library and the header files
-  fakeroot -- bash
 
   cd $srcdir/v8
 
@@ -169,16 +175,16 @@ prepare() {
 
   install -d ${pkgdir}/v8/lic/
   install -m644 LICENSE* ${pkgdir}/v8/lic/
+
 }
 
-prepare
+package_me
 
-exit
-
-cd $maindir
+EOF
 
 # create the tar-ball
-tar cfJ "v8-$target_arch-$pkgver.tar.xz" $pkgdir
+cd $maindir
+tar cJf "v8-$trgt_arch-$pkgver.tar.xz" -C $pkgdir v8
 
 ## end package
 
