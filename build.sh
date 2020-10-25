@@ -21,7 +21,7 @@ crnt_arch="x64" # x86 ppc ppc64 arm arm64 mips mips64 mipsel mips64el s390 s390x
 trgt_arch="x64"
 trgt_os="linux" # mac win android fuchsia ios 
 
-OUTFLD="$arch.static"
+OUTFLD="$trgt_arch.static"
 
 # get depot_tools
 if [ ! -d "depot_tools" ]; then
