@@ -7,7 +7,7 @@
 # Contributor: David Flemström <david.flemstrom@gmail.com>
 
 pkgname=v8-static
-pkgver=8.6.395.17
+pkgver=10.9.130
 pkgrel=1
 pkgdesc="Google's open source JavaScript and WebAssembly engine"
 arch=('x86_64')
@@ -15,18 +15,17 @@ url="https://v8.dev"
 license=('BSD')
 depends=()
 optional=('rlwrap')
-makedepends=('python2' 'python3' 'git')
+makedepends=('python3' 'lld' 'git')
 conflicts=()
 provides=('v8')
 source=("depot_tools::git+https://chromium.googlesource.com/chromium/tools/depot_tools.git")
 sha256sums=('SKIP')
 
-OUTFLD=x86.static
+OUTFLD=x64.static
 
 prepare() {
 
   export PATH=`pwd`/depot_tools:"$PATH"
-  export GYP_GENERATORS=ninja
 
   if [ ! -d "v8" ]; then
     msg2 "Fetching V8 code"
@@ -45,38 +44,50 @@ prepare() {
   msg2 "Running GN..."
   gn gen $OUTFLD \
     -vv --fail-on-unused-args \
-    --args='v8_monolithic=true
-            v8_static_library=true
-            is_clang=false
+    --args='cppgc_enable_young_generation=true
+            dcheck_always_on=false
             is_asan=false
-            use_gold=false
+            is_clang=false
             is_debug=false
             is_official_build=false
             treat_warnings_as_errors=false
-            v8_enable_i18n_support=true
-            v8_use_external_startup_data=false
             use_custom_libcxx=false
-            use_sysroot=false'
+            use_goma=false
+            use_lld=true
+            use_sysroot=false
+            v8_enable_backtrace=true
+            v8_enable_disassembler=true
+            v8_enable_i18n_support=true
+            v8_enable_object_print=true
+            v8_enable_sandbox=false
+            v8_enable_verify_heap=true
+            v8_monolithic=true
+            v8_static_library=true
+            v8_use_external_startup_data=false'
+
+  # Fixes bug in generate_shim_headers.py that fails to create these dirs
+  msg2 "Adding icu missing folders"
+  mkdir -p "$OUTFLD/gen/shim_headers/icuuc_shim/third_party/icu/source/common/unicode/"
+  mkdir -p "$OUTFLD/gen/shim_headers/icui18n_shim/third_party/icu/source/i18n/unicode/"
 
 }
 
 build() {
   export PATH=`pwd`/depot_tools:"$PATH"
-  export GYP_GENERATORS=ninja
 
   cd $srcdir/v8
 
-  msg2 "Building, this will take a while..."
+  msg2 "Building"
   ninja -C $OUTFLD
 }
 
 check() {
   cd $srcdir/v8
 
-  msg2 "Testing, this will also take a while..."
-  python2  tools/run-tests.py --no-presubmit \
-                              --outdir=$OUTFLD \
-                              --arch="x64" || true
+  msg2 "Testing"
+  tools/run-tests.py --no-presubmit \
+                     --outdir=$OUTFLD \
+                     --arch="x64" || true
 }
 
 package() {
